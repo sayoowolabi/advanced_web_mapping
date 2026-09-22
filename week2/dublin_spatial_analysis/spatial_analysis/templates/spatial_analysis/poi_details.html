@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<title>{{ poi.poi_name }} | Dublin Spatial Analysis</title>
+	<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+	<style>
+		:root {
+			--ink: #172326;
+			--muted: #667477;
+			--paper: #f4f1ea;
+			--panel: #fffdf8;
+			--line: #d9ded8;
+			--accent: #d85d3f;
+			--accent-dark: #9f3e2d;
+			--green: #2d7568;
+		}
+
+		* { box-sizing: border-box; }
+
+		body {
+			margin: 0;
+			color: var(--ink);
+			background: var(--paper);
+			font-family: Georgia, 'Times New Roman', serif;
+		}
+
+		.page-shell {
+			width: min(1180px, calc(100% - 40px));
+			margin: 0 auto;
+			padding: 28px 0 56px;
+		}
+
+		.topbar {
+			display: flex;
+			align-items: center;
+			justify-content: space-between;
+			gap: 20px;
+			margin-bottom: 48px;
+			font-family: Arial, sans-serif;
+		}
+
+		.brand {
+			color: var(--ink);
+			font-size: 0.78rem;
+			font-weight: 700;
+			letter-spacing: 0.14em;
+			text-decoration: none;
+			text-transform: uppercase;
+		}
+
+		.back-link {
+			color: var(--accent-dark);
+			font-size: 0.82rem;
+			font-weight: 700;
+			text-decoration: none;
+		}
+
+		.back-link:hover { text-decoration: underline; }
+
+		.eyebrow {
+			margin: 0 0 12px;
+			color: var(--accent-dark);
+			font-family: Arial, sans-serif;
+			font-size: 0.74rem;
+			font-weight: 700;
+			letter-spacing: 0.16em;
+			text-transform: uppercase;
+		}
+
+		h1 {
+			max-width: 760px;
+			margin: 0;
+			font-size: clamp(2.8rem, 7vw, 6.2rem);
+			font-weight: 400;
+			letter-spacing: -0.04em;
+			line-height: 0.94;
+		}
+
+		.intro {
+			max-width: 640px;
+			margin: 24px 0 0;
+			color: var(--muted);
+			font-size: 1.16rem;
+			line-height: 1.65;
+		}
+
+		.content-grid {
+			display: grid;
+			grid-template-columns: minmax(0, 1.15fr) minmax(320px, 0.85fr);
+			gap: 24px;
+			margin-top: 48px;
+		}
+
+		.panel {
+			background: var(--panel);
+			border: 1px solid var(--line);
+			box-shadow: 0 14px 30px rgba(23, 35, 38, 0.06);
+		}
+
+		.map-panel { min-height: 430px; }
+		#poi-map { min-height: 430px; width: 100%; }
+
+		.facts-panel { padding: 28px; }
+
+		.section-label {
+			margin: 0 0 22px;
+			color: var(--muted);
+			font-family: Arial, sans-serif;
+			font-size: 0.72rem;
+			font-weight: 700;
+			letter-spacing: 0.14em;
+			text-transform: uppercase;
+		}
+
+		.facts { margin: 0; }
+		.fact {
+			display: flex;
+			justify-content: space-between;
+			gap: 20px;
+			padding: 16px 0;
+			border-top: 1px solid var(--line);
+			font-family: Arial, sans-serif;
+		}
+
+		.fact dt { color: var(--muted); font-size: 0.88rem; }
+		.fact dd { margin: 0; font-size: 0.92rem; font-weight: 700; text-align: right; }
+
+		.roads-section { margin-top: 52px; }
+		.roads-heading { display: flex; align-items: end; justify-content: space-between; gap: 20px; }
+		.roads-heading h2 { margin: 0; font-size: 2.2rem; font-weight: 400; }
+		.roads-heading p { margin: 0; color: var(--muted); font-family: Arial, sans-serif; font-size: 0.82rem; }
+
+		.road-list { margin-top: 20px; border-top: 1px solid var(--line); }
+		.road {
+			display: grid;
+			grid-template-columns: minmax(150px, 1fr) auto auto;
+			align-items: center;
+			gap: 22px;
+			padding: 20px 0;
+			border-bottom: 1px solid var(--line);
+		}
+
+		.road-name { margin: 0 0 5px; font-size: 1.18rem; }
+		.road-type { color: var(--muted); font-family: Arial, sans-serif; font-size: 0.78rem; }
+		.road-stat { color: var(--muted); font-family: Arial, sans-serif; font-size: 0.78rem; text-align: right; }
+		.road-stat strong { display: block; color: var(--ink); font-size: 0.95rem; }
+
+		.empty-state { color: var(--muted); font-family: Arial, sans-serif; }
+
+		@media (max-width: 760px) {
+			.page-shell { width: min(100% - 28px, 600px); padding-top: 20px; }
+			.topbar { margin-bottom: 34px; }
+			.content-grid { grid-template-columns: 1fr; margin-top: 34px; }
+			.map-panel, #poi-map { min-height: 320px; }
+			.roads-heading { display: block; }
+			.roads-heading p { margin-top: 8px; }
+			.road { grid-template-columns: 1fr 1fr; gap: 12px; }
+			.road-name { grid-column: 1 / -1; }
+			.road-stat { text-align: left; }
+		}
+	</style>
+</head>
+<body>
+	<main class="page-shell">
+		<nav class="topbar" aria-label="Primary navigation">
+			<a class="brand" href="{% url 'spatial_analysis:dashboard' %}">Dublin / Spatial Analysis</a>
+			<a class="back-link" href="{% url 'spatial_analysis:dashboard' %}">Back to dashboard</a>
+		</nav>
+
+		<header>
+			<p class="eyebrow">Point of interest</p>
+			<h1>{{ poi.poi_name }}</h1>
+			{% if poi.description %}
+				<p class="intro">{{ poi.description }}</p>
+			{% else %}
+				<p class="intro">A mapped point of interest in Dublin.</p>
+			{% endif %}
+		</header>
+
+		<section class="content-grid" aria-label="Location and details">
+			<div class="panel map-panel">
+				<div id="poi-map" aria-label="Map showing {{ poi.poi_name }}"></div>
+			</div>
+
+			<aside class="panel facts-panel">
+				<p class="section-label">At a glance</p>
+				<dl class="facts">
+					<div class="fact">
+						<dt>Category</dt>
+						<dd>{{ poi.get_poi_type_display }}</dd>
+					</div>
+					{% if poi.rating %}
+					<div class="fact">
+						<dt>Rating</dt>
+						<dd>{{ poi.rating }} / 5</dd>
+					</div>
+					{% endif %}
+					{% if poi.visitors_per_day %}
+					<div class="fact">
+						<dt>Visitors per day</dt>
+						<dd>{{ poi.visitors_per_day }}</dd>
+					</div>
+					{% endif %}
+					<div class="fact">
+						<dt>Nearby roads</dt>
+						<dd>{{ nearby_roads|length }}</dd>
+					</div>
+				</dl>
+			</aside>
+		</section>
+
+		<section class="roads-section" aria-labelledby="nearby-roads-heading">
+			<div class="roads-heading">
+				<h2 id="nearby-roads-heading">Nearby roads</h2>
+				<p>Closest connections within approximately 1 km</p>
+			</div>
+			<div class="road-list">
+				{% for road in nearby_roads %}
+					<article class="road">
+						<div>
+							<h3 class="road-name">{{ road.road_name }}</h3>
+							<span class="road-type">{{ road.get_road_type_display }}</span>
+						</div>
+						<div class="road-stat"><strong>{{ road.speed_limit }} km/h</strong>speed limit</div>
+						<div class="road-stat"><strong>{{ road.length_meters }} m</strong>road length</div>
+					</article>
+				{% empty %}
+					<p class="empty-state">No nearby roads were found for this location.</p>
+				{% endfor %}
+			</div>
+		</section>
+	</main>
+
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+	<script>
+		const poiGeometry = JSON.parse('{{ poi_json|escapejs }}');
+		const poiMap = L.map('poi-map', { scrollWheelZoom: false });
+		const poiLayer = L.geoJSON(poiGeometry).addTo(poiMap);
+
+		L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+			attribution: '&copy; OpenStreetMap contributors',
+			maxZoom: 19
+		}).addTo(poiMap);
+
+		poiMap.setView([poiGeometry.coordinates[1], poiGeometry.coordinates[0]], 15);
+		poiLayer.bindPopup('<strong>{{ poi.poi_name|escapejs }}</strong>').openPopup();
+	</script>
+</body>
+</html>
