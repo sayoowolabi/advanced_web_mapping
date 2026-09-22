@@ -1,7 +1,13 @@
-from django.shortcuts import render
-from django.contrib.gis.db.models import Q
-from django.contrib.gis.geos import Point
-from .models import DublinAdminArea, DublinRoad, DublinPOI, LandUseZone
+from django.shortcuts import render, get_object_or_404
+from django.contrib.gis.db.models.functions import Distance
+from django.contrib.gis.measure import D
+
+from .models import (
+    DublinAdminArea,
+    DublinRoad,
+    DublinPOI,
+    LandUseZone,
+)
 
 def spatial_analysis_dashboard(request):
     """Dashboard showing spatial analysis of Dublin data"""
@@ -25,18 +31,27 @@ def spatial_analysis_dashboard(request):
     return render(request, 'spatial_analysis/dashboard.html', context)
 
 def poi_detail(request, pk):
-    """Detail view for a single POI"""
-    poi = DublinPOI.objects.get(pk=pk)
 
-    # Find nearby roads (within 1km)
-    nearby_roads = DublinRoad.objects.filter(
-        geom__distance_lte=(poi.geom, 0.01)  # Approximately 1km at equator
-    ).order_by('geom__distance_to', poi.geom)[:5]
+    poi = get_object_or_404(DublinPOI, pk=pk)
+
+    nearby_roads = (
+        DublinRoad.objects
+        .filter(
+            geom__distance_lte=(poi.geom, D(km=1))
+        )
+        .annotate(
+            distance=Distance("geom", poi.geom)
+        )
+        .order_by("distance")[:5]
+    )
 
     context = {
-        'poi': poi,
-        'nearby_roads': nearby_roads,
-        'poi_json': poi.geom.json,
+        "poi": poi,
+        "nearby_roads": nearby_roads,
     }
 
-    return render(request, 'spatial_analysis/poi_details.html', context)
+    return render(
+        request,
+        "spatial_analysis/poi_detail.html",
+        context
+    )
