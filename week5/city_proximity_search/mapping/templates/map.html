@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cities Web Map - Advanced Web Mapping</title>
+
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    {% load static %}
+    <link rel="stylesheet" href="{% static 'css/styles.css' %}">
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --ink: #102a43;
+            --muted: #627d98;
+            --panel: rgba(255, 255, 255, 0.94);
+            --line: #d9e2ec;
+            --blue: #1769aa;
+            --blue-dark: #0b3d6e;
+            --green: #198754;
+            --shadow: 0 18px 50px rgba(16, 42, 67, 0.2);
+        }
+
+        body {
+            color: var(--ink);
+            font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            background: #dfeaf3;
+        }
+
+        #map {
+            width: 100%;
+            height: 100vh;
+        }
+
+        .map-overlay {
+            position: fixed;
+            inset: 0;
+            z-index: 2000;
+            pointer-events: none;
+        }
+
+        .control-panel {
+            position: absolute;
+            top: 24px;
+            left: 24px;
+            width: min(390px, calc(100vw - 48px));
+            padding: 22px;
+            border: 1px solid rgba(255, 255, 255, 0.8);
+            border-radius: 22px;
+            background: var(--panel);
+            box-shadow: var(--shadow);
+            backdrop-filter: blur(12px);
+            pointer-events: auto;
+        }
+
+        .eyebrow {
+            color: var(--blue);
+            font-size: 11px;
+            font-weight: 800;
+            letter-spacing: 0.14em;
+            text-transform: uppercase;
+        }
+
+        .panel-heading {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 16px;
+            margin-bottom: 18px;
+        }
+
+        .panel-heading h1 {
+            margin-top: 5px;
+            color: var(--blue-dark);
+            font-size: 25px;
+            letter-spacing: -0.03em;
+        }
+
+        .panel-heading p {
+            margin-top: 6px;
+            color: var(--muted);
+            font-size: 13px;
+            line-height: 1.45;
+        }
+
+        .live-badge {
+            flex: 0 0 auto;
+            padding: 6px 9px;
+            border-radius: 999px;
+            background: #e3fcef;
+            color: #147d4f;
+            font-size: 10px;
+            font-weight: 800;
+            letter-spacing: 0.08em;
+        }
+
+        .search-box {
+            width: 100%;
+            padding: 12px 14px;
+            border: 1px solid var(--line);
+            border-radius: 11px;
+            background: #f8fbfd;
+            color: var(--ink);
+            font-size: 14px;
+            outline: none;
+            transition: border-color 160ms ease, box-shadow 160ms ease;
+        }
+
+        .search-box:focus,
+        #radius-input:focus {
+            border-color: var(--blue);
+            box-shadow: 0 0 0 3px rgba(23, 105, 170, 0.14);
+        }
+
+        .section-label {
+            display: block;
+            margin: 20px 0 9px;
+            color: var(--muted);
+            font-size: 11px;
+            font-weight: 800;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+        }
+
+        .button-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+        }
+
+        .action-button,
+        .reset-button {
+            min-height: 42px;
+            padding: 10px 12px;
+            border: 1px solid transparent;
+            border-radius: 10px;
+            cursor: pointer;
+            font: inherit;
+            font-size: 12px;
+            font-weight: 750;
+            transition: transform 160ms ease, background 160ms ease, opacity 160ms ease;
+        }
+
+        .action-button:hover,
+        .reset-button:hover {
+            transform: translateY(-1px);
+        }
+
+        .action-button:disabled,
+        .reset-button:disabled {
+            cursor: wait;
+            opacity: 0.55;
+            transform: none;
+        }
+
+        .action-button {
+            background: var(--blue);
+            color: white;
+        }
+
+        .action-button.active {
+            background: var(--blue-dark);
+            box-shadow: 0 0 0 3px rgba(23, 105, 170, 0.2), inset 0 -3px 0 rgba(255, 255, 255, 0.25);
+        }
+
+        .action-button.secondary {
+            background: #e8f2fa;
+            color: var(--blue-dark);
+        }
+
+        .action-button.secondary.active {
+            background: var(--green);
+            color: white;
+            box-shadow: 0 0 0 3px rgba(25, 135, 84, 0.18), inset 0 -3px 0 rgba(255, 255, 255, 0.25);
+        }
+
+        .reset-button {
+            width: 100%;
+            margin-top: 9px;
+            border-color: var(--line);
+            background: white;
+            color: var(--muted);
+        }
+
+        .radius-control {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            margin-top: 10px;
+            padding: 10px 12px;
+            border: 1px solid #b9dfcb;
+            border-radius: 10px;
+            background: #f1fcf6;
+            color: #176b47;
+            font-size: 12px;
+            font-weight: 700;
+        }
+
+        #radius-input {
+            width: 105px;
+            padding: 8px;
+            border: 1px solid #b9dfcb;
+            border-radius: 8px;
+            background: white;
+            color: var(--ink);
+            font: inherit;
+        }
+
+        .d-none {
+            display: none !important;
+        }
+
+        #results {
+            max-height: 190px;
+            margin-top: 12px;
+            overflow-y: auto;
+        }
+
+        #results div {
+            padding: 9px 2px;
+            border-bottom: 1px solid #edf2f7;
+            color: var(--ink);
+            font-size: 13px;
+        }
+
+        .proximity-status {
+            margin: 14px 0 0;
+            color: var(--muted);
+            font-size: 12px;
+            line-height: 1.4;
+        }
+
+        #proximity-results {
+            max-height: 220px;
+            margin-top: 11px;
+            overflow-y: auto;
+            border-top: 1px solid var(--line);
+        }
+
+        #proximity-results strong {
+            display: block;
+            padding: 12px 0 7px;
+            color: var(--blue-dark);
+            font-size: 12px;
+        }
+
+        #proximity-results ol {
+            margin: 0;
+            padding-left: 22px;
+        }
+
+        #proximity-results li {
+            padding: 2px 0;
+            color: var(--muted);
+            font-size: 12px;
+        }
+
+        #proximity-results button {
+            width: 100%;
+            padding: 5px 6px;
+            border: 0;
+            border-radius: 6px;
+            background: transparent;
+            color: var(--ink);
+            cursor: pointer;
+            font: inherit;
+            text-align: left;
+        }
+
+        #proximity-results button:hover {
+            background: #edf6fc;
+            color: var(--blue);
+        }
+
+        .info-box {
+            position: absolute;
+            right: 24px;
+            bottom: 24px;
+            max-width: 250px;
+            padding: 16px 18px;
+            border: 1px solid rgba(255, 255, 255, 0.8);
+            border-radius: 16px;
+            background: var(--panel);
+            box-shadow: var(--shadow);
+            color: var(--muted);
+            font-size: 12px;
+            line-height: 1.5;
+            pointer-events: auto;
+        }
+
+        .info-box h4 {
+            margin-bottom: 5px;
+            color: var(--blue-dark);
+            font-size: 13px;
+        }
+
+        .info-box strong {
+            color: var(--ink);
+        }
+
+        .loading {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            padding: 15px 18px;
+            border-radius: 12px;
+            background: rgba(16, 42, 67, 0.92);
+            box-shadow: var(--shadow);
+            color: white;
+            font-size: 13px;
+            font-weight: 700;
+            transform: translate(-50%, -50%);
+        }
+
+        .city-popup {
+            min-width: 250px;
+        }
+
+        .city-popup h3 {
+            margin-bottom: 8px;
+            color: #007bff;
+        }
+
+        .city-popup p {
+            margin: 4px 0;
+            font-size: 13px;
+        }
+
+        .nearest-city-marker {
+            background: transparent;
+            border: 0;
+        }
+
+        .nearest-city-marker span {
+            display: block;
+            width: 28px;
+            height: 28px;
+            border: 2px solid #fff;
+            border-radius: 50%;
+            background: #d63384;
+            box-shadow: 0 1px 4px rgb(0 0 0 / 45%);
+            color: #fff;
+            font-weight: 700;
+            line-height: 24px;
+            text-align: center;
+        }
+
+        @media (max-width: 640px) {
+            .control-panel {
+                top: 12px;
+                left: 12px;
+                width: calc(100vw - 24px);
+                padding: 17px;
+            }
+
+            .info-box {
+                right: 12px;
+                bottom: 12px;
+                left: 12px;
+                max-width: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="map"></div>
+
+    <div class="map-overlay">
+        <div class="control-panel">
+            <div class="panel-heading">
+                <div>
+                    <span class="eyebrow">Advanced web mapping</span>
+                    <h1>City explorer</h1>
+                    <p>Explore the city network and discover what is nearby.</p>
+                </div>
+                <span class="live-badge">LIVE</span>
+            </div>
+            <input type="text" id="searchInput" class="search-box" placeholder="Search cities...">
+            <span class="section-label">Find nearby cities</span>
+            <div class="button-row">
+                <button id="nearest-search-btn" class="action-button" type="button">10 nearest</button>
+                <button id="radius-search-btn" class="action-button secondary" type="button">Within radius</button>
+            </div>
+            <label id="radius-control" class="radius-control d-none" for="radius-input">
+                Radius (km)
+                <input id="radius-input" type="number" min="1" max="20000" value="100">
+            </label>
+            <p id="proximity-status" class="proximity-status" role="status" aria-live="polite">
+                Choose a search, then click a city marker.
+            </p>
+            <div id="proximity-results" aria-live="polite"></div>
+            <button id="resetBtn" class="reset-button" type="button">Reset map view</button>
+            <div id="results"></div>
+        </div>
+
+        <div class="info-box">
+            <h4>Map Information</h4>
+            <p>Cities loaded: <strong id="cityCount">0</strong></p>
+            <p>Click on markers to view city details.</p>
+        </div>
+
+        <div class="loading" id="loading">Loading cities data...</div>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/leaflet.heat/dist/leaflet-heat.js"></script>
+    <script src="{% static 'js/map.js' %}"></script>
+</body>
+</html>

@@ -1,0 +1,1 @@
+{"search_point":{"lat":53.3498,"lng":-6.2603},"radius_km":500.0,"total_found":2,"cities":[{"id":1,"name":"Dublin","country":"Ireland","population":1400000,"coordinates":{"lat":53.3498,"lng":-6.2603},"distance_km":0.0},{"id":2,"name":"London","country":"United Kingdom","population":9000000,"coordinates":{"lat":51.5074,"lng":-0.1278},"distance_km":463.31}]}
