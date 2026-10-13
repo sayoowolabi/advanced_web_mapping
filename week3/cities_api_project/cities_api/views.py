@@ -7,6 +7,7 @@ from django_filters.rest_framework import DjangoFilterBackend
 from django.contrib.gis.geos import Point
 from django.db.models import Count, Avg, Q, Sum
 from django.contrib.gis.measure import Distance
+from django.contrib.gis.db.models.functions import Distance as DistanceFunction
 
 from .models import City
 from .serializers import (
@@ -83,6 +84,14 @@ class CityGeoJSONView(generics.ListAPIView):
     filterset_class = CityFilter
     search_fields = ['name', 'country']
 
+    def list(self, request, *args, **kwargs):
+        queryset = self.filter_queryset(self.get_queryset())
+        serializer = self.get_serializer(queryset, many=True)
+        return Response({
+            'type': 'FeatureCollection',
+            'features': serializer.data,
+        })
+
 @api_view(['GET'])
 def city_statistics(request):
     """
@@ -124,11 +133,10 @@ def cities_within_radius(request):
             srid=4326
         )
 
-        cities = City.objects.within_radius(
-            center_point,
-            data['radius_km']
+        cities = City.objects.filter(
+            location__distance_lte=(center_point, Distance(km=data['radius_km']))
         ).annotate(
-            distance=Distance('location', center_point)
+            distance=DistanceFunction('location', center_point)
         ).order_by('distance')
 
         # Add distance to serialized data
