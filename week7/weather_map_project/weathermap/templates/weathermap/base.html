@@ -1,0 +1,54 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Weather Map{% endblock %}</title>
+
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+          integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
+
+    <link rel="stylesheet" href="{% static 'weathermap/css/styles.css' %}?v={% now 'U' %}">
+
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+    <header>
+        <div class="container">
+            <h1>Real-Time Weather Map</h1>
+            <p>Click on any city to view current weather conditions</p>
+
+            <!-- Enhancement 3 (search) and Enhancement 4 (unit toggle) -->
+            <div class="toolbar">
+                <form id="search-form" class="search-form" autocomplete="off">
+                    <label for="city-search" class="visually-hidden">Search for a city</label>
+                    <input type="search" id="city-search" list="city-list" placeholder="Search for a city...">
+                    <datalist id="city-list"></datalist>
+                    <button type="submit">Go</button>
+                </form>
+                <button type="button" id="unit-toggle" class="unit-toggle"
+                        aria-label="Switch temperature unit">Show °F</button>
+            </div>
+            <p id="search-message" class="search-message" role="status"></p>
+        </div>
+    </header>
+
+    <main>
+        {% block content %}{% endblock %}
+    </main>
+
+    <footer>
+        <div class="container">
+            <p>Powered by XWeather API | Built with Django &amp; Leaflet</p>
+        </div>
+    </footer>
+
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+            integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+
+    {% block extra_js %}{% endblock %}
+</body>
+</html>
